@@ -1,0 +1,82 @@
+{
+  "telegram": {
+    "botToken": "${TELEGRAM_BOT_TOKEN}"
+  },
+  "llm": {
+    "defaultProvider": "anthropic",
+    "defaultModel": "claude-sonnet-4-20250514",
+    "providers": {
+      "anthropic": {
+        "apiKey": "${ANTHROPIC_API_KEY}",
+        "models": [
+          "claude-sonnet-4-20250514",
+          "claude-haiku-3-20240307"
+        ]
+      },
+      "openai": {
+        "apiKey": "${OPENAI_API_KEY}",
+        "models": [
+          "gpt-4o",
+          "gpt-4o-mini"
+        ]
+      }
+    },
+    "maxRetries": 3,
+    "fallbackProvider": "openai"
+  },
+  "mcp": {
+    "servers": [
+      {
+        "name": "filesystem",
+        "transport": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "./workspace"]
+      }
+    ]
+  },
+  "memory": {
+    "enabled": true,
+    "workspacePath": "./workspace",
+    "search": {
+      "enabled": true,
+      "embeddingProvider": "openai",
+      "embeddingModel": "text-embedding-3-small",
+      "hybridSearch": true,
+      "temporalDecay": {
+        "enabled": true,
+        "halfLifeDays": 30
+      },
+      "mmr": {
+        "enabled": true,
+        "lambda": 0.7
+      }
+    },
+    "compaction": {
+      "enabled": true,
+      "maxTokens": 100000,
+      "reserveTokens": 20000,
+      "flushBeforeCompaction": true
+    }
+  },
+  "sandbox": {
+    "enabled": true,
+    "type": "docker",
+    "timeoutMs": 30000,
+    "memoryLimitMb": 256,
+    "dockerImage": "node:22-slim"
+  },
+  "auth": {
+    "ownerId": 0,
+    "guestPermissions": {
+      "canUseTools": true,
+      "canUseSandbox": false,
+      "canReadMemory": false,
+      "canWriteMemory": false
+    }
+  },
+  "agent": {
+    "name": "Agent",
+    "systemPrompt": "You are a helpful assistant.",
+    "persona": ""
+  }
+}
