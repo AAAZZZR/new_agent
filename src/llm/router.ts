@@ -10,21 +10,30 @@ export interface LLMRouter {
   getProvider(name: string): LLMProvider | undefined;
 }
 
+/**
+ * Providers that use the OpenAI-compatible API format.
+ * "claude-subscription" uses claude-max-api-proxy which exposes
+ * an OpenAI-compatible endpoint backed by your Claude subscription.
+ */
+const OPENAI_COMPATIBLE_PROVIDERS = new Set([
+  'openai',
+  'claude-subscription',
+]);
+
 export function createLLMRouter(config: LLMConfig): LLMRouter {
   const providers = new Map<string, LLMProvider>();
 
   // Initialize configured providers
   for (const [name, providerConfig] of Object.entries(config.providers)) {
     try {
-      switch (name) {
-        case 'anthropic':
-          providers.set(name, new AnthropicProvider(providerConfig));
-          break;
-        case 'openai':
-          providers.set(name, new OpenAIProvider(providerConfig));
-          break;
-        default:
-          log.warn(`Unknown provider: ${name}`);
+      if (name === 'anthropic') {
+        providers.set(name, new AnthropicProvider(providerConfig));
+      } else if (OPENAI_COMPATIBLE_PROVIDERS.has(name)) {
+        // OpenAI and any OpenAI-compatible provider (e.g. claude-subscription proxy)
+        providers.set(name, new OpenAIProvider(providerConfig));
+      } else {
+        log.warn(`Unknown provider: ${name}, attempting OpenAI-compatible initialization`);
+        providers.set(name, new OpenAIProvider(providerConfig));
       }
     } catch (err) {
       log.error(`Failed to initialize provider ${name}:`, err);
@@ -82,7 +91,7 @@ function resolveProvider(model: string, config: LLMConfig): string {
   }
 
   // Heuristic: match by model name prefix
-  if (model.startsWith('claude')) return 'anthropic';
+  if (model.startsWith('claude')) return config.providers['claude-subscription'] ? 'claude-subscription' : 'anthropic';
   if (model.startsWith('gpt') || model.startsWith('o1') || model.startsWith('o3')) return 'openai';
   if (model.startsWith('gemini')) return 'gemini';
 

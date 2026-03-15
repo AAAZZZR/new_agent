@@ -3,9 +3,18 @@
     "botToken": "${TELEGRAM_BOT_TOKEN}"
   },
   "llm": {
-    "defaultProvider": "anthropic",
-    "defaultModel": "claude-sonnet-4-20250514",
+    "defaultProvider": "claude-subscription",
+    "defaultModel": "claude-sonnet-4",
     "providers": {
+      "claude-subscription": {
+        "apiKey": "not-needed",
+        "baseUrl": "http://localhost:3456/v1",
+        "models": [
+          "claude-opus-4",
+          "claude-sonnet-4",
+          "claude-haiku-4"
+        ]
+      },
       "anthropic": {
         "apiKey": "${ANTHROPIC_API_KEY}",
         "models": [
@@ -22,7 +31,7 @@
       }
     },
     "maxRetries": 3,
-    "fallbackProvider": "openai"
+    "fallbackProvider": "anthropic"
   },
   "mcp": {
     "servers": [
