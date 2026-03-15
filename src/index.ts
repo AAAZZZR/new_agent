@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { loadConfig, resolveEnvVars } from './config/index.js';
 import { createGateway } from './gateway/index.js';
 import { createSessionManager } from './session/index.js';
@@ -19,11 +20,15 @@ async function main() {
   const llm = createLLMRouter(config.llm);
   log.info(`LLM Router ready (default: ${config.llm.defaultProvider}/${config.llm.defaultModel})`);
 
-  // 3. Initialize MCP Manager
+  // 3. Initialize MCP Manager (optional — skip if servers fail)
   const mcp = createMCPManager(config.mcp);
-  await mcp.initialize();
-  const tools = mcp.getTools();
-  log.info(`MCP ready (${tools.length} tools from ${config.mcp.servers.length} servers)`);
+  try {
+    await mcp.initialize();
+    const tools = mcp.getTools();
+    log.info(`MCP ready (${tools.length} tools from ${config.mcp.servers.length} servers)`);
+  } catch (err) {
+    log.warn('MCP initialization failed, continuing without tools:', err);
+  }
 
   // 4. Initialize Session Manager
   const sessions = createSessionManager(config);

@@ -9,10 +9,18 @@ export class AnthropicProvider implements LLMProvider {
   private client: Anthropic;
 
   constructor(config: LLMProviderConfig) {
+    // Support both API key and OAuth token (authToken)
+    // OAuth tokens start with "sk-ant-oat"
+    const isOAuth = config.apiKey?.startsWith('sk-ant-oat');
+
     this.client = new Anthropic({
-      apiKey: config.apiKey,
+      ...(isOAuth
+        ? { authToken: config.apiKey, apiKey: null }
+        : { apiKey: config.apiKey }),
       ...(config.baseUrl && { baseURL: config.baseUrl }),
     });
+
+    log.info(`Initialized with ${isOAuth ? 'OAuth token (subscription)' : 'API key'}`);
   }
 
   async chat(params: ChatParams): Promise<ChatResponse> {
@@ -96,7 +104,6 @@ export class AnthropicProvider implements LLMProvider {
         result.push({ role: 'assistant', content });
       } else if (msg.role === 'tool') {
         // Anthropic expects tool results in a user message
-        // Check if last message is already a user message with tool results
         const lastMsg = result[result.length - 1];
         const toolResultBlock: Anthropic.ToolResultBlockParam = {
           type: 'tool_result',
