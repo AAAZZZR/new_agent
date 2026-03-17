@@ -3,79 +3,64 @@
     "botToken": "${TELEGRAM_BOT_TOKEN}"
   },
   "llm": {
-    "defaultProvider": "claude-subscription",
-    "defaultModel": "claude-sonnet-4",
+    "defaultProvider": "gemini",
+    "defaultModel": "gemini-2.5-flash",
     "providers": {
-      "claude-subscription": {
-        "apiKey": "not-needed",
-        "baseUrl": "http://localhost:3456/v1",
+      "gemini": {
+        "apiKey": "${GEMINI_API_KEY}",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
         "models": [
-          "claude-opus-4",
-          "claude-sonnet-4",
-          "claude-haiku-4"
+          "gemini-2.5-flash",
+          "gemini-2.0-flash",
+          "gemini-2.5-pro"
         ]
       },
       "anthropic": {
         "apiKey": "${ANTHROPIC_API_KEY}",
         "models": [
+          "claude-opus-4-20250514",
           "claude-sonnet-4-20250514",
-          "claude-haiku-3-20240307"
-        ]
-      },
-      "openai": {
-        "apiKey": "${OPENAI_API_KEY}",
-        "models": [
-          "gpt-4o",
-          "gpt-4o-mini"
+          "claude-haiku-4-20250414"
         ]
       }
     },
-    "maxRetries": 3,
-    "fallbackProvider": "anthropic"
+    "maxRetries": 2,
+    "fallbackProvider": ""
   },
   "mcp": {
     "servers": [
       {
+        "name": "test-tools",
+        "transport": "stdio",
+        "command": "node",
+        "args": [
+          "/home/ubuntu/new_agent/mcp-test-server/index.js"
+        ]
+      },
+      {
         "name": "filesystem",
         "transport": "stdio",
         "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-filesystem", "./workspace"]
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-filesystem",
+          "/home/ubuntu/new_agent/workspace"
+        ]
       }
     ]
   },
   "memory": {
-    "enabled": true,
-    "workspacePath": "./workspace",
-    "search": {
-      "enabled": true,
-      "embeddingProvider": "openai",
-      "embeddingModel": "text-embedding-3-small",
-      "hybridSearch": true,
-      "temporalDecay": {
-        "enabled": true,
-        "halfLifeDays": 30
-      },
-      "mmr": {
-        "enabled": true,
-        "lambda": 0.7
-      }
-    },
-    "compaction": {
-      "enabled": true,
-      "maxTokens": 100000,
-      "reserveTokens": 20000,
-      "flushBeforeCompaction": true
-    }
+    "enabled": false,
+    "workspacePath": "./workspace"
   },
   "sandbox": {
-    "enabled": true,
-    "type": "docker",
+    "enabled": false,
+    "type": "subprocess",
     "timeoutMs": 30000,
-    "memoryLimitMb": 256,
-    "dockerImage": "node:22-slim"
+    "memoryLimitMb": 256
   },
   "auth": {
-    "ownerId": 0,
+    "ownerId": 8274521225,
     "guestPermissions": {
       "canUseTools": true,
       "canUseSandbox": false,
@@ -84,8 +69,8 @@
     }
   },
   "agent": {
-    "name": "Agent",
-    "systemPrompt": "You are a helpful assistant.",
+    "name": "TestBot",
+    "systemPrompt": "你是 TestBot，一個在 Telegram 群組裡的 AI 助手。你可以自由地和群組成員聊天、回答問題、使用工具。請用中文回覆，保持簡潔友善。",
     "persona": ""
   }
 }

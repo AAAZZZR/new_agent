@@ -66,6 +66,8 @@ export function createGateway(deps: GatewayDeps): Gateway {
         tools: tools.length > 0 ? tools : undefined,
       });
 
+      log.info(`LLM response: content_len=${(response.content || '').length}, toolCalls=${response.toolCalls?.length ?? 0}, finish=${response.finishReason}`);
+
       // Tool calling loop
       let iterations = 0;
       const MAX_ITERATIONS = 10;
@@ -93,10 +95,13 @@ export function createGateway(deps: GatewayDeps): Gateway {
               toolCallId: call.id,
               content: typeof result === 'string' ? result : JSON.stringify(result),
             });
+            log.info(`Tool ${call.name} result: ${String(results[results.length - 1].content).slice(0, 200)}`);
           } catch (err) {
+            const errMsg = `Error: ${err instanceof Error ? err.message : String(err)}`;
+            log.error(`Tool ${call.name} error: ${errMsg}`);
             results.push({
               toolCallId: call.id,
-              content: `Error: ${err instanceof Error ? err.message : String(err)}`,
+              content: errMsg,
               isError: true,
             });
           }
@@ -113,11 +118,13 @@ export function createGateway(deps: GatewayDeps): Gateway {
         }
 
         // Call LLM again with tool results
+        log.info(`Calling LLM again with ${results.length} tool results`);
         response = await llm.chat({
           model: config.llm.defaultModel,
           messages: sessions.getMessages(chatId),
           tools: tools.length > 0 ? tools : undefined,
         });
+        log.info(`LLM response (after tools): content_len=${(response.content || '').length}, toolCalls=${response.toolCalls?.length ?? 0}, finish=${response.finishReason}`);
       }
 
       // Add final assistant response
@@ -129,7 +136,10 @@ export function createGateway(deps: GatewayDeps): Gateway {
         });
 
         // Send reply (split long messages)
+        log.info(`Sending reply: ${response.content.slice(0, 100)}`);
         await sendLongMessage(ctx, response.content);
+      } else {
+        log.warn(`No content in final response, finishReason=${response.finishReason}`);
       }
 
       // Update token count

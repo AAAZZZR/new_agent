@@ -12,7 +12,9 @@ export class OpenAIProvider implements LLMProvider {
     this.client = new OpenAI({
       apiKey: config.apiKey,
       ...(config.baseUrl && { baseURL: config.baseUrl }),
+      timeout: 120000, // 120s timeout for thinking models
     });
+    log.info(`Initialized with baseURL: ${config.baseUrl || 'default'}`);
   }
 
   async chat(params: ChatParams): Promise<ChatResponse> {
@@ -27,34 +29,43 @@ export class OpenAIProvider implements LLMProvider {
       },
     }));
 
-    const response = await this.client.chat.completions.create({
-      model: params.model,
-      messages,
-      ...(tools && tools.length > 0 && { tools }),
-      ...(params.maxTokens && { max_tokens: params.maxTokens }),
-      ...(params.temperature !== undefined && { temperature: params.temperature }),
-    });
+    log.info(`Calling ${params.model} with ${messages.length} messages, ${tools?.length ?? 0} tools`);
 
-    const choice = response.choices[0];
-    if (!choice) throw new Error('No response from OpenAI');
+    try {
+      const response = await this.client.chat.completions.create({
+        model: params.model,
+        messages,
+        ...(tools && tools.length > 0 && { tools }),
+        ...(params.maxTokens && { max_tokens: params.maxTokens }),
+        ...(params.temperature !== undefined && { temperature: params.temperature }),
+      });
 
-    const content = choice.message.content ?? '';
-    const toolCalls = choice.message.tool_calls?.map(tc => ({
-      id: tc.id,
-      name: tc.function.name,
-      arguments: JSON.parse(tc.function.arguments) as Record<string, unknown>,
-    }));
+      log.info(`Response received: choices=${response.choices.length}, finish=${response.choices[0]?.finish_reason}`);
 
-    return {
-      content,
-      toolCalls: toolCalls && toolCalls.length > 0 ? toolCalls : undefined,
-      usage: {
-        promptTokens: response.usage?.prompt_tokens ?? 0,
-        completionTokens: response.usage?.completion_tokens ?? 0,
-        totalTokens: response.usage?.total_tokens ?? 0,
-      },
-      finishReason: choice.finish_reason === 'tool_calls' ? 'tool_calls' : 'stop',
-    };
+      const choice = response.choices[0];
+      if (!choice) throw new Error('No response from OpenAI');
+
+      const content = choice.message.content ?? '';
+      const toolCalls = choice.message.tool_calls?.map(tc => ({
+        id: tc.id,
+        name: tc.function.name,
+        arguments: JSON.parse(tc.function.arguments) as Record<string, unknown>,
+      }));
+
+      return {
+        content,
+        toolCalls: toolCalls && toolCalls.length > 0 ? toolCalls : undefined,
+        usage: {
+          promptTokens: response.usage?.prompt_tokens ?? 0,
+          completionTokens: response.usage?.completion_tokens ?? 0,
+          totalTokens: response.usage?.total_tokens ?? 0,
+        },
+        finishReason: choice.finish_reason === 'tool_calls' ? 'tool_calls' : 'stop',
+      };
+    } catch (err) {
+      log.error(`LLM call failed:`, err);
+      throw err;
+    }
   }
 
   countTokens(messages: Message[]): number {
